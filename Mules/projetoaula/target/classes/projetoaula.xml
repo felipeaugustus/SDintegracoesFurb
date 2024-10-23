@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8082" doc:name="HTTP Listener Configuration"/>
+	<http:request-config name="HTTP_Request_Configuration" host="ws.homologacao.ufsc.br" port="80" doc:name="HTTP Request Configuration"/>
+	<flow name="projetoaulaFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="*" doc:name="HTTP"/>
+		<http:static-resource-handler resourceBase="${app.home}/docroot" doc:name="HTTP Static Resource Handler"/>
+	</flow>
+	<flow name="projetoaulaFlow1">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/tratarForm" doc:name="HTTP"/>
+		<component class="br.furb.dsc.Tratamento" doc:name="Java"/>
+		<response>
+			<object-to-string-transformer mimeType="text/plain" doc:name="Object to String"/>
+		</response>
+		<enricher doc:name="Message Enricher">
+			<http:request config-ref="HTTP_Request_Configuration" path="/CEPService/getCepInfo/88036002" method="GET" doc:name="HTTP">
+				<http:request-builder>
+					<http:query-param paramName="cep" value="#[payload.cep]"/>
+				</http:request-builder>
+			</http:request>
+			<enrich source="#[json:logradouroAbreviado]" target="#[payload.endereco]"/>
+			<enrich source="#[json:uf]" target="#[payload.estado]"/>
+			<enrich source="#[json:bairro]" target="#[payload.bairro]"/>
+		</enricher>
+	</flow>
+</mule>
